@@ -12,5 +12,9 @@
         {
             return config.GetSection(key).Value;
         }
+        public static string[] SettingList(string key)
+        {
+            return config.GetSection(key).Get<string[]>();
+        }
     }
 }

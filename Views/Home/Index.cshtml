@@ -52,7 +52,7 @@
 
 <style>
     .footer {
-        position: inherit !important;
+        position: absolute !important;
     }
 
 </style>
@@ -155,7 +155,7 @@
                                     <span class="card-label fw-bolder fs-3 mb-1">Files Statistics</span>
                                     <span class="text-muted mt-1 fw-bold fs-7">Your selected files will show here.</span>
                                 </h3>
-                                <div class="card-toolbar" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover" title="Click to add a user">
+                                <div class="card-toolbar" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover" title="Click to upload files">
                                     <button id="uploadBtn" href="#" class="btn btn-sm btn-light btn-active-primary" disabled>
                                         <!--begin::Svg Icon | path: icons/duotune/arrows/arr075.svg-->
                                         <span class="svg-icon svg-icon-3">
@@ -228,10 +228,12 @@
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 <script>
-    $(document).ready(function () {
+    let selectedFiles = {};
+    $(document).ready(function() {
         var cropper = null;
-
-        $('#fileInput').on('change', function () {
+        // Initialize an empty object to store the selected files with their unique keys
+        
+        $('#fileInput').on('change', function() {
             // Check if a file has been selected
             if (this.files && this.files[0]) {
 
@@ -241,7 +243,8 @@
                 const fileType = getFileType(file);
                 const fileSource = URL.createObjectURL(file);
                 var imgDimension = '';
-
+                // Generate a unique key for the file
+                const uniqueKey = generateUniqueKey();
                 if (isImage(this.files[0])) {
 
                     getImageSize(fileSource)
@@ -251,7 +254,7 @@
 
                             imgDimension = 'Width: ' + imgWidthPx + ' Height: ' + imgHeightPx;
                             // Call any functions that depend on the image size here
-                            createNewRow(fileSource, fileName, fileType, fileSize, imgDimension);
+                            generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey);
                             // Now Enable upload button to upload the files.
                             document.getElementById("uploadBtn").disabled = false;
 
@@ -261,20 +264,38 @@
                         });
                 }
                 else {
-                    createNewRow(fileSource, fileName, fileType, fileSize, imgDimension);
+                    generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey);
                 }
-                //const tableBody = document.getElementById("filesTableBody");
 
-                //const lastRow = tableBody.lastElementChild;
-                //console.log('lastRow: ', lastRow);
 
-                //const fileInput = lastRow.querySelector('input.fileInpList');
-                //console.log('lastRow: ', lastRow);
-                //fileInput.files = [this.files[0]];
+                // Add the file to the selectedFiles object with its unique key
+                selectedFiles[uniqueKey] = this.files[0];
+
+                // Get the table element and its tbody
+                const tbody = document.getElementById("filesTableBody");
+                // Check if tbody has any rows
+                if (tbody.rows.length > 0) {
+                    // If there are rows, enable the upload button
+                    document.getElementById("uploadBtn").disabled = false;
+                } else {
+                    // If there are no rows, disable the upload button
+                    document.getElementById("uploadBtn").disabled = true;
+                }
+
+
+
+                //// Get the selected files and add them to the selectedFiles object
+                //const files = event.target.files;
+                //for (let i = 0; i < files.length; i++) {
+                //    // Generate a unique key for the file
+                //    const uniqueKey = generateUniqueKey();
+                //    // Add the file to the selectedFiles object with its unique key
+                //    selectedFiles[uniqueKey] = files[i];
+                //}
             }
         });
 
-        $('#uploadBtn').on('click', function () {
+        $('#uploadBtn').on('click', function() {
             if (cropper) {
 
                 console.log("cropped is not null.");
@@ -284,7 +305,7 @@
                     width: 200,
                     height: 200
                 });
-                canvas.toBlob(function (blob) {
+                canvas.toBlob(function(blob) {
                     // Create a FormData object and add the cropped image file to it
                     var formData = new FormData();
                     formData.append('file', blob, 'cropped.jpg');
@@ -294,25 +315,18 @@
             else {
                 console.log("cropped is null.");
 
-                const tbody = document.getElementById("filesTableBody");
-                const rows = tbody.querySelectorAll("tr");
 
-                rows.forEach((row) => {
-                    // Do some work for individual row here
-                    console.log(row);
-
-
-
-                    var fileInput = $('#file');
-
-                    var selectedFile = fileInput[0].files[0];
+                // Loop through the selectedFiles object and get the individual files
+                for (const key in selectedFiles) {
+                    const file = selectedFiles[key];
+                    console.log(`File name: ${file.name}, File type: ${file.type}, File size: ${file.size}`);
 
                     var formData = new FormData();
-                    formData.append("file", selectedFile);
+                    formData.append("file", file);
 
                     uploadData(formData);
+                }
 
-                });
 
                 //var fileInput = $('#file');
                 //var selectedFile = fileInput[0].files[0];
@@ -321,8 +335,8 @@
                 //formData.append("file", selectedFile);
 
                 //uploadData(formData);
-                
-                
+
+
             }
         });
     });
@@ -342,9 +356,9 @@
             cache: false,
             contentType: false,
             processData: false,
-            xhr: function () {
+            xhr: function() {
                 var xhr = new window.XMLHttpRequest();
-                xhr.upload.addEventListener('progress', function (evt) {
+                xhr.upload.addEventListener('progress', function(evt) {
                     console.log("progress called");
                     if (evt.lengthComputable) {
                         console.log("progress lengthComputable");
@@ -355,14 +369,14 @@
                 }, false);
                 return xhr;
             },
-            success: function (data, textStatus, jqXHR) {
+            success: function(data, textStatus, jqXHR) {
                 //alert('File uploaded successfully. URL: ' + response.url)
                 if (textStatus == 'success') {
                     var errorTitle = 'File uploaded successfully';
                     sendAlert('success', errorTitle);
                 }
             },
-            error: function (jqXHR, textStatus, errorThrown) {
+            error: function(jqXHR, textStatus, errorThrown) {
                 var errorTitle = jqXHR.responseJSON.title;
                 sendAlert('danger', errorTitle);
             }
@@ -398,7 +412,19 @@
 
         var row = $(callingObject).closest('tr');
         var imgSrc = $(row).find('img').attr('src');
+
+        alert('File deleted: ' + imgSrc);
+
         $(row).remove();
+
+        // file delete form array
+        if (getFileByKey(id.replace("delete_", ""))) {
+            deleteFileByKey(id.replace("delete_", ""))
+        }
+        else {
+            console.log('file Key: ', id.replace("delete_", ""));
+            sendAlert('danger', "File not found to delete!");
+        }
 
         // Log the details to the console
         console.log(`Tag name: ${tagName}`);
@@ -406,11 +432,9 @@
         console.log(`Text content: ${textContent}`);
         console.log(`imgSrc: ${imgSrc}`);
 
-        alert('File deleted: ' + imgSrc);
 
         // Get the table element and its tbody
-        const table = document.getElementById("filesTable");
-        const tbody = table.getElementsByTagName("tbody")[0];
+        const tbody = document.getElementById("filesTableBody");
 
         // Check if tbody has any rows
         if (tbody.rows.length > 0) {
@@ -472,7 +496,7 @@
         });
     }
 
-    function createNewRow(fileSource, fileName, fileType, fileSize, imgDimension) {
+    function generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey) {
 
         // Get the table body element by ID
         var tableBody = $("#filesTable tbody");
@@ -521,7 +545,7 @@
             '            </span>' +
             '            <!--end::Svg Icon-->' +
             '        </a>' +
-            '        <button class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm" onclick="deleteFile(this)">' +
+            '        <button id="delete_' + uniqueKey + '" class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm" onclick="deleteFile(this)">' +
             '            <!--begin::Svg Icon | path: icons/duotune/general/gen027.svg-->' +
             '            <span class="svg-icon svg-icon-3">' +
             '                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">' +
@@ -542,40 +566,41 @@
 
     }
 
+    function getCurTimeString() {
+        const now = new Date();
+        const hour = now.getHours().toString().padStart(2, '0');
+        const minute = now.getMinutes().toString().padStart(2, '0');
+        const second = now.getSeconds().toString().padStart(2, '0');
 
-                                    //// Get the delete button element
-                                    //const deleteButton = document.querySelector('.fileDelBtn');
-
-                                    //// Attach an event listener to the button
-                                    //deleteButton.addEventListener('click', function(event) {
-                                    //    // Call the function with the calling object as the parameter
-                                    //    deleteFile(event.target);
-                                    //});
+        const timeString = hour + minute + second;
+        return timeString;
+    }
 
 
-                                        //if (isImage(this.files[0])) {
-                                        //    console.log("Selected file is an image.");
 
-                                        //    // Load the image into the Cropper.js plugin
-                                        //    var reader = new FileReader();
-                                        //    reader.onload = function(e) {
-                                        //        $('#image-preview').attr('src', e.target.result);
-                                        //        cropper = new Cropper($('#image-preview')[0], {
-                                        //            aspectRatio: 1,
-                                        //            crop: function(event) {
-                                        //                //console.log(event.detail.x);
-                                        //                //console.log(event.detail.y);
-                                        //                //console.log(event.detail.width);
-                                        //                //console.log(event.detail.height);
-                                        //            }
-                                        //        });
-                                        //    };
-                                        //    reader.readAsDataURL(this.files[0]);
-                                        //}
-                                        //else {
-                                        //    console.log("Selected file is not an image!!!");
-                                        //}
 
+    // Function to generate a unique key for the file
+    function generateUniqueKey() {
+        // Generate a random string using Math.random() and convert it to base 36
+        const randomString = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        // Combine the current timestamp and the random string to create the unique key
+        const uniqueKey = `file_${new Date().getTime()}_${randomString}`;
+        return uniqueKey;
+    }
+
+    // Function to get a file by its unique key
+    function getFileByKey(key) {
+        console.log('selectedFiles: ', selectedFiles);
+
+        console.log('key: ',key);
+
+        return selectedFiles[key];
+    }
+
+    // Function to delete a file by its unique key
+    function deleteFileByKey(key) {
+        delete selectedFiles[key];
+    }
 
 
 </script>

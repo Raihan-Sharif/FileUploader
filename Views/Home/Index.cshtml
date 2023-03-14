@@ -232,7 +232,7 @@
     $(document).ready(function() {
         var cropper = null;
         // Initialize an empty object to store the selected files with their unique keys
-        
+
         $('#fileInput').on('change', function() {
             // Check if a file has been selected
             if (this.files && this.files[0]) {
@@ -241,7 +241,7 @@
                 const fileName = file.name.split('.')[0];
                 const fileSize = getFileSize(file);
                 const fileType = getFileType(file);
-                const fileSource = URL.createObjectURL(file);
+                var fileSource = URL.createObjectURL(file);
                 var imgDimension = '';
                 // Generate a unique key for the file
                 const uniqueKey = generateUniqueKey();
@@ -264,6 +264,8 @@
                         });
                 }
                 else {
+                    // if file is not image then show the respective file thumnail.
+                    fileSource = getThumbnailByFileType(file);
                     generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey);
                 }
 
@@ -324,7 +326,7 @@
                     var formData = new FormData();
                     formData.append("file", file);
 
-                    uploadData(formData);
+                    uploadData(formData, key, file.name);
                 }
 
 
@@ -342,11 +344,11 @@
     });
 
     // this funciton for post data to server.
-    function uploadData(formData) {
+    function uploadData(formData, uniqueKey, fileName) {
         console.log('uploadData Called.', formData);
-        // Create a progress bar and add it to the page
-        var progressBar = $('<div class="progress-bar"></div>').appendTo($('#bar'));
-
+        // Get the progress bar and progress text from the table row to show the progress status.
+        var progressText = document.getElementById("progressText_" + uniqueKey);
+        var progressBar = document.getElementById("progressBar_" + uniqueKey);
         // Send the file to the server using AJAX
         $.ajax({
             url: '/api/File/Upload',
@@ -359,12 +361,14 @@
             xhr: function() {
                 var xhr = new window.XMLHttpRequest();
                 xhr.upload.addEventListener('progress', function(evt) {
-                    console.log("progress called");
                     if (evt.lengthComputable) {
-                        console.log("progress lengthComputable");
 
                         var percentComplete = evt.loaded / evt.total;
-                        progressBar.width(percentComplete * 100 + '%');
+                        var progressStatus = Math.floor(percentComplete * 100).toString() + '%';
+
+                        // Update the innerHTML property to insert the desired text
+                        progressText.innerHTML = progressStatus;
+                        progressBar.style.width = progressStatus;
                     }
                 }, false);
                 return xhr;
@@ -372,12 +376,15 @@
             success: function(data, textStatus, jqXHR) {
                 //alert('File uploaded successfully. URL: ' + response.url)
                 if (textStatus == 'success') {
-                    var errorTitle = 'File uploaded successfully';
+                    var errorTitle = 'File uploaded successfully. <br/> File: ' + fileName;
                     sendAlert('success', errorTitle);
                 }
             },
             error: function(jqXHR, textStatus, errorThrown) {
-                var errorTitle = jqXHR.responseJSON.title;
+
+                progressText.innerHTML = '0%';
+                progressBar.style.width = '0%';
+                var errorTitle = jqXHR.responseText + ' <br/> File: ' + fileName;
                 sendAlert('danger', errorTitle);
             }
         });
@@ -481,6 +488,37 @@
         }
     }
 
+    function getThumbnailByFileType(file) {
+        const type = file.type;
+        if (type.startsWith('image/')) {
+            return '/assets/media/svg/files/image-document.svg';
+        } else if (type.startsWith('video/')) {
+            return '/assets/media/svg/files/video-document.svg';
+
+        } else if (type.startsWith('audio/')) {
+            return '/assets/media/svg/files/audio-document.svg';
+
+        } else if (type.startsWith('application/pdf')) {
+            return '/assets/media/svg/files/pdf-document.svg';
+
+        } else if (type.startsWith('application/msword') || type.startsWith('application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
+            return '/assets/media/svg/files/word-document.svg';
+
+        } else if (type.startsWith('application/vnd.ms-excel') || type.startsWith('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+            return '/assets/media/svg/files/excel-document.svg';
+
+        } else if (type.startsWith('application/vnd.ms-powerpoint') || type.startsWith('application/vnd.openxmlformats-officedocument.presentationml.presentation')) {
+            return '/assets/media/svg/files/ppt-document.svg';
+
+        } else if (type.startsWith('text/')) {
+            return '/assets/media/svg/files/txt-document.svg';
+
+        } else {
+            return '/assets/media/svg/files/unknown-document.svg';
+
+        }
+    }
+
     function getImageSize(fileSource) {
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -512,7 +550,6 @@
             '    <div class="d-flex align-items-center">' +
             '        <div class="symbol symbol-45px me-5">' +
             '            <img src="' + fileSource + '" alt="" />' +
-            '            <input type="file" class="fileInpList" value="' + fileSource + '" hidden >' +
             '        </div>' +
             '        <div class="d-flex justify-content-start flex-column">' +
             '            <span class="text-dark fw-bolder text-hover-primary fs-6">' + fileName + '</span>' +
@@ -527,10 +564,10 @@
             '<td class="text-end">' +
             '    <div class="d-flex flex-column w-100 me-2">' +
             '        <div class="d-flex flex-stack mb-2">' +
-            '            <span class="text-muted me-2 fs-7 fw-bold" progress-text>0%</span>' +
+            '            <span id="progressText_' + uniqueKey + '" class="text-muted me-2 fs-7 fw-bold" progress-text>0%</span>' +
             '        </div>' +
             '        <div class="progress h-6px w-100">' +
-            '            <div class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>' +
+            '            <div id="progressBar_' + uniqueKey + '" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>' +
             '        </div>' +
             '    </div>' +
             '</td>' +
@@ -592,7 +629,7 @@
     function getFileByKey(key) {
         console.log('selectedFiles: ', selectedFiles);
 
-        console.log('key: ',key);
+        console.log('key: ', key);
 
         return selectedFiles[key];
     }

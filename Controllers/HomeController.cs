@@ -1,4 +1,5 @@
-﻿using FileUploader.Models;
+﻿using FileUploader.Helper;
+using FileUploader.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
@@ -20,6 +21,19 @@ namespace FileUploader.Controllers
 
         public IActionResult Privacy()
         {
+            var controllerActions = ControllerActionHelper.GetControllerActionsWithRoutes();
+
+            foreach (var controller in controllerActions)
+            {
+                Console.WriteLine($"Controller Name: {controller.Key}");
+                Console.WriteLine("Actions:");
+
+                foreach (var action in controller.Value)
+                {
+                    Console.WriteLine($"\t{action}");
+                }
+            }
+
             return View();
         }
 

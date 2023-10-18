@@ -51,32 +51,31 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
 
 <style>
-        .footer {
-            position: fixed !important;
-        }
+    .footer {
+        position: fixed !important;
+    }
 
 
-        .drop-zone {
-      border: 2px dashed #ccc;
-      border-radius: 5px;
-      height: 150px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+    .drop-zone {
+        border: 2px dashed #ccc;
+        border-radius: 5px;
+        height: 150px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
 
     .drop-zone__prompt {
-      font-size: 18px;
-      color: #aaa;
-      margin-bottom: 10px;
+        font-size: 18px;
+        color: #aaa;
+        margin-bottom: 10px;
     }
 
     .drop-zone__input {
-      display: none;
+        display: none;
     }
-
 
 </style>
 
@@ -151,15 +150,15 @@
                             <!--begin::Body-->
                             <div class="card-body pt-2">
                                 <!--begin::wrapper-->
-                                @*              <input type="file" id="fileInput" multiple onchange="handleFiles(event)" />
+                                <input type="file" id="fileInput" multiple onchange="handleFiles(event)" />
                                 <div id="progress">
-                                <div id="bar"></div>
+                                    <div id="bar"></div>
                                 </div>
                                 <div>
-                                <img id="image-preview" />
+                                    <img id="image-preview" />
                                 </div>
                                 <div id="errorContainer">
-                                </div>*@
+                                </div>
                                 <!--end::wrapper-->
 
 
@@ -263,7 +262,7 @@
 
 
     const dropZone = document.querySelector('.drop-zone');
-    const input = dropZone.querySelector('.drop-zone__input');
+    const inputDragNDrop = dropZone.querySelector('.drop-zone__input');
 
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -274,24 +273,42 @@
         dropZone.classList.remove('drop-zone--over');
     });
 
+        // Add a drop event listener to your dropZone
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
 
         if (e.dataTransfer.files.length) {
-            input.files = e.dataTransfer.files;
-            console.log(input.files);
+            const droppedFiles = Array.from(e.dataTransfer.files);
+            handleFiles(droppedFiles); // Call the common function to handle dropped files
         }
 
         dropZone.classList.remove('drop-zone--over');
     });
 
 
+    // Find the input element by its id
+    const inputFile = document.getElementById('fileInput');
 
+    // Add an input change event listener to your input element
+    inputFile.addEventListener('change', () => {
+        const selectedFiles = input.files;
+        handleFiles(selectedFiles); // Call the common function to handle selected files
+    });
 
+    //dropZone.addEventListener('drop', (e) => {
+    //    e.preventDefault();
 
-    function handleFiles(event) {
+    //    if (e.dataTransfer.files.length) {
+    //        input.files = e.dataTransfer.files;
+    //        console.log(input.files);
+    //    }
+
+    //    dropZone.classList.remove('drop-zone--over');
+    //});
+
+    // Common function to handle file uploads
+    function handleFiles(files) {
         console.log('handle files called.');
-        const files = event.target.files;
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
@@ -324,41 +341,88 @@
                     });
             }
             else {
-                // if file is not image then show the respective file thumnail.
+                // if the file is not an image, then show the respective file thumbnail.
                 fileSource = getThumbnailByFileType(file);
                 generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey);
             }
 
-
             // Add the file to the selectedFiles object with its unique key
             selectedFiles[uniqueKey] = file;
-
-            // Get the table element and its tbody
-            const tbody = document.getElementById("filesTableBody");
-            // Check if tbody has any rows
-            if (tbody.rows.length > 0) {
-                // If there are rows, enable the upload button
-                document.getElementById("uploadBtn").disabled = false;
-            } else {
-                // If there are no rows, disable the upload button
-                document.getElementById("uploadBtn").disabled = true;
-            }
-
-
-
-            //// Get the selected files and add them to the selectedFiles object
-            //const files = event.target.files;
-            //for (let i = 0; i < files.length; i++) {
-            //    // Generate a unique key for the file
-            //    const uniqueKey = generateUniqueKey();
-            //    // Add the file to the selectedFiles object with its unique key
-            //    selectedFiles[uniqueKey] = files[i];
-            //}
-
         }
+    }
 
 
-    };
+
+    //function handleFiles(event) {
+    //    console.log('handle files called.');
+    //    const files = event.target.files;
+
+    //    for (let i = 0; i < files.length; i++) {
+    //        const file = files[i];
+
+    //        const fileName = file.name.split('.')[0];
+    //        const fileSize = getFileSize(file);
+    //        const fileType = getFileType(file);
+    //        var fileSource = URL.createObjectURL(file);
+    //        const thumbnail = fileSource;
+    //        var imgDimension = '';
+    //        // Generate a unique key for the file
+    //        const uniqueKey = generateUniqueKey();
+    //        if (isImage(file)) {
+
+    //            getImageSize(fileSource)
+    //                .then(size => {
+    //                    imgWidthPx = size.width + 'px';
+    //                    imgHeightPx = size.height + 'px';
+
+    //                    imgDimension = 'Width: ' + imgWidthPx + ' Height: ' + imgHeightPx;
+    //                    console.log('fileSource', fileSource);
+    //                    // Call any functions that depend on the image size here
+    //                    generateNewRow(thumbnail, fileName, fileType, fileSize, imgDimension, uniqueKey);
+    //                    // Now Enable upload button to upload the files.
+    //                    document.getElementById("uploadBtn").disabled = false;
+
+    //                })
+    //                .catch(err => {
+    //                    console.error(err);
+    //                });
+    //        }
+    //        else {
+    //            // if file is not image then show the respective file thumnail.
+    //            fileSource = getThumbnailByFileType(file);
+    //            generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey);
+    //        }
+
+
+    //        // Add the file to the selectedFiles object with its unique key
+    //        selectedFiles[uniqueKey] = file;
+
+    //        // Get the table element and its tbody
+    //        const tbody = document.getElementById("filesTableBody");
+    //        // Check if tbody has any rows
+    //        if (tbody.rows.length > 0) {
+    //            // If there are rows, enable the upload button
+    //            document.getElementById("uploadBtn").disabled = false;
+    //        } else {
+    //            // If there are no rows, disable the upload button
+    //            document.getElementById("uploadBtn").disabled = true;
+    //        }
+
+
+
+    //        //// Get the selected files and add them to the selectedFiles object
+    //        //const files = event.target.files;
+    //        //for (let i = 0; i < files.length; i++) {
+    //        //    // Generate a unique key for the file
+    //        //    const uniqueKey = generateUniqueKey();
+    //        //    // Add the file to the selectedFiles object with its unique key
+    //        //    selectedFiles[uniqueKey] = files[i];
+    //        //}
+
+    //    }
+
+
+    //};
 
     function prepareUplodFiles() {
         if (cropper) {
@@ -370,7 +434,7 @@
                 width: 200,
                 height: 200
             });
-            canvas.toBlob(function(blob) {
+            canvas.toBlob(function (blob) {
                 // Create a FormData object and add the cropped image file to it
                 var formData = new FormData();
                 formData.append('file', blob, 'cropped.jpg');
@@ -419,9 +483,9 @@
             cache: false,
             contentType: false,
             processData: false,
-            xhr: function() {
+            xhr: function () {
                 var xhr = new window.XMLHttpRequest();
-                xhr.upload.addEventListener('progress', function(evt) {
+                xhr.upload.addEventListener('progress', function (evt) {
                     if (evt.lengthComputable) {
 
                         var percentComplete = evt.loaded / evt.total;
@@ -434,14 +498,14 @@
                 }, false);
                 return xhr;
             },
-            success: function(data, textStatus, jqXHR) {
+            success: function (data, textStatus, jqXHR) {
                 //alert('File uploaded successfully. URL: ' + response.url)
                 if (textStatus == 'success') {
                     var errorTitle = 'File uploaded successfully. <br/> File: ' + fileName;
                     sendAlert('success', errorTitle);
                 }
             },
-            error: function(jqXHR, textStatus, errorThrown) {
+            error: function (jqXHR, textStatus, errorThrown) {
 
                 progressText.innerHTML = '0%';
                 progressBar.style.width = '0%';

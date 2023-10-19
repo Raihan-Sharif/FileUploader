@@ -1,4 +1,51 @@
 ﻿
+/** Configuration for file upload */
+const FileUploadConfig = {
+    Allowed_Types: ["jpg", "jpeg", "png", "gif", "pdf", "doc", "docx", "txt", "ppt", "pptx", "xls", "xlsx", "mp4", "avi", "wmv", "mov", "mkv", "mp3"],
+    Max_File_Size: 5 * 1024 * 1024, // 5MB in bytes
+    Max_Img_Size: 1 * 1024 * 1024, // 1MB in bytes
+    Image_Path: "\\Uplaod\\Images",
+    File_Path: "\\Uplaod\\Files",
+    Is_Dragable: true,
+    Is_Multiple_Upload: true
+};
+
+
+/**
+ * Function to validate a file based on the configuration
+ * @param {any} file
+ * @returns
+ */
+function validateFile(file) {
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    const fileSize = file.size;
+
+    if (!FileUploadConfig.Allowed_Types.includes(fileExtension)) {
+        return "File type not allowed.";
+    }
+
+    if (fileSize > FileUploadConfig.Max_File_Size) {
+        return "File size exceeds the allowed limit.";
+    }
+
+    if (fileExtension.match(/jpg|jpeg|png|gif/) && fileSize > FileUploadConfig.Max_Img_Size) {
+        return "Image size exceeds the allowed limit.";
+    }
+
+    return "File is valid.";
+}
+
+
+
+// Example usage:
+const uploadedFile = {
+    name: "example.jpg",
+    size: 2000000 // 2 MB
+};
+
+const validationResult = validateFile(uploadedFile);
+console.log(validationResult); // Output: "File is valid."
+
 /**
  * Common function to handle file uploads
  * @param {any} files

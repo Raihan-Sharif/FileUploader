@@ -115,7 +115,7 @@ function showMessage(msgType, messages) {
  * @param {any} msg
  * @param {any} autoDismissDelay
  */
-function sendAlert(alertType, msg, autoDismissDelay = 10000) {
+function sendAlert(alertType, msg, autoDismissDelay = 15000) {
     console.log('send alert called.');
 
     // Define icons for different alert types

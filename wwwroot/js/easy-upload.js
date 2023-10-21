@@ -6,10 +6,22 @@ const FileUploadConfig = {
     Max_Img_Size: 1 * 1024 * 1024, // 1MB in bytes
     Image_Path: "\\Uplaod\\Images",
     File_Path: "\\Uplaod\\Files",
-    Is_Dragable: true,
-    Is_Multiple_Upload: true
+    Is_Draggable: true,
+    Is_Multiple_Upload: true,
+    Max_Uploads: 5, // Maximum number of files to upload in one go
+    Allow_Duplicate_Files: false, // New property to control duplicate file allowance
+    Check_File_Validation: true, // property to control file validation
+    CustomSetting2: "Value2"
+    // OnUploadStart: function (file) { /* Custom function to execute when an upload starts */ },
+    // OnUploadComplete: function (file) { /* Custom function to execute when an upload completes */ },
+    // OnError: function (error) { /* Custom error handling function */ },
+    // ShowProgress: true, // Display upload progress
+    // ProgressCallback: function (progress) { /* Custom function to update progress UI */ },
+    // Add more custom settings as needed
 };
 
+// Define a global variable to store selected files
+/*const selectedFiles = {};*/
 
 /**
  * Function to validate a file based on the configuration
@@ -28,23 +40,35 @@ function validateFile(file) {
         return "File size exceeds the allowed limit.";
     }
 
-    if (fileExtension.match(/jpg|jpeg|png|gif/) && fileSize > FileUploadConfig.Max_Img_Size) {
-        return "Image size exceeds the allowed limit.";
+    // Additional validation based on configuration
+    if (FileUploadConfig.Allowed_Types.includes(fileExtension)) {
+        if (fileExtension.match(/jpg|jpeg|png|gif/) && fileSize > FileUploadConfig.Max_Img_Size) {
+            return "Image size exceeds the allowed limit.";
+        }
     }
 
-    return "File is valid.";
+    return "";
 }
 
 
+/**
+ * Function to check if a file is a duplicate. It already exist in selected files list.
+ * @param {any} file
+ * @param {any} filesObject
+ * @returns
+ */
+function isDuplicateFile(file, filesObject) {
+    for (const key in filesObject) {
+        const existingFile = filesObject[key];
 
-// Example usage:
-const uploadedFile = {
-    name: "example.jpg",
-    size: 2000000 // 2 MB
-};
+        if (existingFile.name === file.name && existingFile.type === file.type && existingFile.size === file.size) {
+            return true; // Duplicate file found
+        }
+    }
 
-const validationResult = validateFile(uploadedFile);
-console.log(validationResult); // Output: "File is valid."
+    return false; // Not a duplicate
+}
+
 
 /**
  * Common function to handle file uploads
@@ -52,18 +76,27 @@ console.log(validationResult); // Output: "File is valid."
  */
 function handleFiles(files) {
     console.log('handle files called.');
+    if (FileUploadConfig.Is_Multiple_Upload && files.length > FileUploadConfig.Max_Uploads) {
+        return sendAlert("danger", `You have exceeded the maximum limit of ${FileUploadConfig.Max_Uploads} file uploads.`);
+    }
+
+    if (!FileUploadConfig.Is_Multiple_Upload && files.length > 1) {
+        return sendAlert("danger", "Multiple file upload is not allowed. Please select a single file.");
+    }
+
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-
         const fileName = file.name.split('.')[0];
         const fileSize = getFileSize(file);
         const fileType = getFileType(file);
         var fileSource = URL.createObjectURL(file);
         const thumbnail = fileSource;
         var imgDimension = '';
+        let isValidFile = true;
         // Generate a unique key for the file
         const uniqueKey = generateUniqueKey();
+
         if (isImage(file)) {
 
             getImageSize(fileSource)
@@ -73,10 +106,6 @@ function handleFiles(files) {
 
                     imgDimension = 'Width: ' + imgWidthPx + ' Height: ' + imgHeightPx;
                     console.log('fileSource', fileSource);
-                    // Call any functions that depend on the image size here
-                    generateNewRow(thumbnail, fileName, fileType, fileSize, imgDimension, uniqueKey);
-                    // Now Enable upload button to upload the files.
-                    document.getElementById("uploadBtn").disabled = false;
 
                 })
                 .catch(err => {
@@ -86,16 +115,58 @@ function handleFiles(files) {
         else {
             // if the file is not an image, then show the respective file thumbnail.
             fileSource = getThumbnailByFileType(file);
-            generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey);
+            // generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey);
         }
 
-        // Add the file to the selectedFiles object with its unique key
-        selectedFiles[uniqueKey] = file;
+        // check the file validation
+        const checkFileValidation = validateFile(file);
+
+        if (FileUploadConfig.Check_File_Validation && checkFileValidation) {
+            isValidFile = false;
+            sendAlert("danger", `The selected file '${fileName}' does not meet the upload requirements: ${checkFileValidation}`);
+        }
+        else {
+
+            // Check for duplicate files if duplicate file is not allowed
+            if (!FileUploadConfig.Allow_Duplicate_Files && Object.keys(selectedFiles).length > 0) {
+                // Call the function to check for duplicates
+                var isDuplicate = isDuplicateFile(file, selectedFiles);
+                if (isDuplicate) {
+                    // Handle duplicate file
+                    console.log('isDuplicateFile: ', isDuplicate);
+
+                    // Include file info in the alert message
+                    const alertMessage = `Error: This file (${fileName}) is already selected. ` +
+                        `Type: ${fileType}, Size: ${fileSize}.`;
+
+                    sendAlert("danger", alertMessage);
+                }
+                else {
+                    // Call any functions that depend on the image size here
+                    generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey, isValidFile);
+                    // Now Enable upload button to upload the files.
+                    document.getElementById("uploadBtn").disabled = false;
+                    // Add the file to the selectedFiles object with its unique key
+                    selectedFiles[uniqueKey] = file;
+                }
+            }
+            else {
+                // Call any functions that depend on the image size here
+                generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey, isValidFile);
+                // Now Enable upload button to upload the files.
+                document.getElementById("uploadBtn").disabled = false;
+                // Add the file to the selectedFiles object with its unique key
+                selectedFiles[uniqueKey] = file;
+
+            }
+        }
     }
 }
 
 /** Prepeare the upload files before uploading like image corp to default size or compress the image/file size */
 function prepareUplodFiles() {
+    console.log('selectedFiles', selectedFiles);
+
     if (cropper) {
 
         console.log("cropped is not null.");
@@ -355,6 +426,7 @@ function getImageSize(fileSource) {
     });
 }
 
+
 /**
  * Generate new row to show the uploaded files in the upload section
  * @param {any} fileSource
@@ -363,9 +435,11 @@ function getImageSize(fileSource) {
  * @param {any} fileSize
  * @param {any} imgDimension
  * @param {any} uniqueKey
+ * @param {any} isValidFile
  */
-function generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey) {
+function generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, uniqueKey, isValidFile = true) {
 
+    console.log("New Row called.");
     // Get the table body element by ID
     var tableBody = $("#filesTableBody");;
 
@@ -403,7 +477,7 @@ function generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, 
         '</td>' +
         '<td>' +
         '    <div class="d-flex justify-content-end flex-shrink-0">' +
-        '        <a href="#" class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1">' +
+        '        <a href="#" class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm btn-warning me-1">' +
         '            <!--begin::Svg Icon | path: icons/duotune/art/art005.svg-->' +
         '            <span class="svg-icon svg-icon-3">' +
 
@@ -412,7 +486,7 @@ function generateNewRow(fileSource, fileName, fileType, fileSize, imgDimension, 
         '            </span>' +
         '            <!--end::Svg Icon-->' +
         '        </a>' +
-        '        <button id="delete_' + uniqueKey + '" class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm" onclick="deleteFile(this)">' +
+        '        <button id="delete_' + uniqueKey + '" class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm btn-danger" onclick="deleteFile(this)">' +
         '            <!--begin::Svg Icon | path: icons/duotune/general/gen027.svg-->' +
         '            <span class="svg-icon svg-icon-3">' +
         '                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">' +

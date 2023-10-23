@@ -23,6 +23,9 @@ namespace FileUploader.Helper
 
                 foreach (var controller in controllers)
                 {
+                    var controllerNameAttribute = (ControllerNameAttribute)controller.GetCustomAttribute(typeof(ControllerNameAttribute));
+                    string controllerName = controllerNameAttribute?.Name ?? controller.Name;
+
                     var actions = controller.GetMethods()
                         .Where(method => method.IsPublic && !method.IsDefined(typeof(NonActionAttribute)))
                         .Select(method => new
@@ -30,11 +33,9 @@ namespace FileUploader.Helper
                             ActionName = method.Name,
                             Routes = method.GetCustomAttributes<RouteAttribute>()
                         });
-                        //.Where(method => method.Routes.Any());
 
                     if (actions.Any())
                     {
-                        var controllerName = ((ControllerNameAttribute)controller.GetCustomAttribute(typeof(ControllerNameAttribute))).Name;
                         if (controllerActions.ContainsKey(controllerName))
                         {
                             controllerActions[controllerName].AddRange(actions.Select(action => $"{action.ActionName} [{string.Join(",", action.Routes.Select(route => route.Template))}]").ToList());
@@ -48,6 +49,7 @@ namespace FileUploader.Helper
             }
 
             return controllerActions;
+
         }
     }
 }

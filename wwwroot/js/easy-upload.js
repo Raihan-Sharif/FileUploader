@@ -2,17 +2,18 @@
 /** Configuration for file upload */
 const FileUploadConfig = {
     Allowed_Types: ["jpg", "jpeg", "png", "gif", "pdf", "doc", "docx", "txt", "ppt", "pptx", "xls", "xlsx", "mp4", "avi", "wmv", "mov", "mkv", "mp3"],
+    Is_Hide_UnAllowed_Files: true, // Corrected property name
     Max_File_Size: 5 * 1024 * 1024, // 5MB in bytes
     Max_Img_Size: 1 * 1024 * 1024, // 1MB in bytes
     Image_Path: "\\Uplaod\\Images",
     File_Path: "\\Uplaod\\Files",
     Is_Draggable: true,
     Is_Multiple_Upload: true,
-    Max_Uploads: 5, // Maximum number of files to upload in one go
-    Allow_Duplicate_Files: false, // New property to control duplicate file allowance
-    Check_File_Validation: true, // property to control file validation
-    CustomSetting2: "Value2"
-    // OnUploadStart: function (file) { /* Custom function to execute when an upload starts */ },
+    Max_Uploads: 5,
+    Allow_Duplicate_Files: false,
+    Check_File_Validation: true,
+    // Add more custom settings as needed
+        // OnUploadStart: function (file) { /* Custom function to execute when an upload starts */ },
     // OnUploadComplete: function (file) { /* Custom function to execute when an upload completes */ },
     // OnError: function (error) { /* Custom error handling function */ },
     // ShowProgress: true, // Display upload progress
@@ -186,17 +187,45 @@ function prepareUplodFiles() {
     else {
         console.log("cropped is null.");
 
+        // Total progress tracking
+        let totalProgress = 0;
+        let completedUploads = 0;
 
         // Loop through the selectedFiles object and get the individual files
         for (const key in selectedFiles) {
             const file = selectedFiles[key];
-            console.log(`File name: ${file.name}, File type: ${file.type}, File size: ${file.size}`);
+           // console.log(`File name: ${file.name}, File type: ${file.type}, File size: ${file.size}`);
 
             var formData = new FormData();
             formData.append("file", file);
 
-            uploadData(formData, key, file.name);
+            uploadData(formData, key, file.name, (uploadPercentage) => {
+                // Update total progress when each upload is completed
+                completedUploads++;
+                totalProgress += uploadPercentage;
+
+                // Calculate the average progress
+                const averageProgress = totalProgress / completedUploads;
+                console.log('averageProgress: ', averageProgress);
+                // Update the total progress bar
+                updateTotalProgress(averageProgress);
+
+                // Check if all uploads are completed
+                if (completedUploads === Object.keys(selectedFiles).length) {
+                    // All uploads are completed
+                    showMessage('success', 'All files are uploaded successfully!');
+                }
+            });
         }
+
+
+
+
+
+
+
+
+
 
 
         //var fileInput = $('#file');

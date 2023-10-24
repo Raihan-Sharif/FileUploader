@@ -153,6 +153,10 @@
                                     </button>
                                 </div>
                             </div>
+                            <div class="progress">
+                                <div id="totalProgressBar" class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                <div id="totalProgressText" class="progress-text">0%</div>
+                            </div>
                             <!--end::Header-->
                             <!--begin::Body-->
                             <div class="card-body py-3">
@@ -200,18 +204,6 @@
     <!--end::Page-->
     <!--Begin::Success or Error Message-->
     <div class="container mt-5">
-        <!--begin::Row-->
-        <div class="row gy-5 g-xl-8">
-            <!--begin::Col-->
-            <div class="col-xl-4">
-                <div class="progress">
-                    <div id="totalProgressBar" class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                    <div id="totalProgressText" class="progress-text">0%</div>
-                </div>
-            </div>
-            <!--end::Col-->
-        </div>
-        <!--end::Row-->
         <!--begin::Row-->
         <div class="row gy-5 g-xl-8">
             <!--begin::Col-->
@@ -303,22 +295,23 @@
     });
     showMessage('success', 'Hello this a test message alert!');
     // showMessage('error', 'Hello this a test message alert!');
-    console.log('FileUploadConfig.Allowed_Types.length ', FileUploadConfig.Allowed_Types.length, FileUploadConfig.Is_Hide_UnAllowed_Files);
+    console.log('fileUploadConfig.Allowed_Types.length ', fileUploadConfig.Allowed_Types.length, fileUploadConfig.Is_Hide_UnAllowed_Files);
     // Allowed only user to choose the allowed file types to select.
-    if (FileUploadConfig.Is_Hide_UnAllowed_Files && FileUploadConfig.Allowed_Types.length > 0) {
-        const acceptTypes = FileUploadConfig.Allowed_Types.map(ext => `.${ext}`).join(',');
+    if (fileUploadConfig.Is_Hide_UnAllowed_Files && fileUploadConfig.Allowed_Types.length > 0) {
+        const acceptTypes = fileUploadConfig.Allowed_Types.map(ext => `.${ext}`).join(',');
         inputFile.setAttribute('accept', acceptTypes);
     }
 
     /**updateTotalProgress */
     function updateTotalProgress(percentage) {
+        console.log('updateTotalProgress called!');
         const totalProgressBar = document.getElementById('totalProgressBar');
         const totalProgressText = document.getElementById('totalProgressText');
 
         totalProgressBar.style.width = percentage + '%';
         totalProgressBar.setAttribute('aria-valuenow', percentage);
 
-        const progressText = Math.floor(percentage * 100).toString() + '%';
+        const progressText = Math.floor(percentage).toString() + '%';
         console.log('progressText', progressText);
 
         totalProgressText.innerText = progressText;

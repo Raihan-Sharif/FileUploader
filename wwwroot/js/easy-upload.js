@@ -1,6 +1,6 @@
 ﻿
 /** Configuration for file upload */
-const FileUploadConfig = {
+const fileUploadConfig = {
     Allowed_Types: ["jpg", "jpeg", "png", "gif", "pdf", "doc", "docx", "txt", "ppt", "pptx", "xls", "xlsx", "mp4", "avi", "wmv", "mov", "mkv", "mp3"],
     Is_Hide_UnAllowed_Files: true, // Corrected property name
     Max_File_Size: 5 * 1024 * 1024, // 5MB in bytes
@@ -13,7 +13,7 @@ const FileUploadConfig = {
     Allow_Duplicate_Files: false,
     Check_File_Validation: true,
     // Add more custom settings as needed
-        // OnUploadStart: function (file) { /* Custom function to execute when an upload starts */ },
+    // OnUploadStart: function (file) { /* Custom function to execute when an upload starts */ },
     // OnUploadComplete: function (file) { /* Custom function to execute when an upload completes */ },
     // OnError: function (error) { /* Custom error handling function */ },
     // ShowProgress: true, // Display upload progress
@@ -33,17 +33,17 @@ function validateFile(file) {
     const fileExtension = file.name.split('.').pop().toLowerCase();
     const fileSize = file.size;
 
-    if (!FileUploadConfig.Allowed_Types.includes(fileExtension)) {
+    if (!fileUploadConfig.Allowed_Types.includes(fileExtension)) {
         return "File type not allowed.";
     }
 
-    if (fileSize > FileUploadConfig.Max_File_Size) {
+    if (fileSize > fileUploadConfig.Max_File_Size) {
         return "File size exceeds the allowed limit.";
     }
 
     // Additional validation based on configuration
-    if (FileUploadConfig.Allowed_Types.includes(fileExtension)) {
-        if (fileExtension.match(/jpg|jpeg|png|gif/) && fileSize > FileUploadConfig.Max_Img_Size) {
+    if (fileUploadConfig.Allowed_Types.includes(fileExtension)) {
+        if (fileExtension.match(/jpg|jpeg|png|gif/) && fileSize > fileUploadConfig.Max_Img_Size) {
             return "Image size exceeds the allowed limit.";
         }
     }
@@ -77,11 +77,11 @@ function isDuplicateFile(file, filesObject) {
  */
 function handleFiles(files) {
     console.log('handle files called.');
-    if (FileUploadConfig.Is_Multiple_Upload && files.length > FileUploadConfig.Max_Uploads) {
-        return sendAlert("danger", `You have exceeded the maximum limit of ${FileUploadConfig.Max_Uploads} file uploads.`);
+    if (fileUploadConfig.Is_Multiple_Upload && files.length > fileUploadConfig.Max_Uploads) {
+        return sendAlert("danger", `You have exceeded the maximum limit of ${fileUploadConfig.Max_Uploads} file uploads.`);
     }
 
-    if (!FileUploadConfig.Is_Multiple_Upload && files.length > 1) {
+    if (!fileUploadConfig.Is_Multiple_Upload && files.length > 1) {
         return sendAlert("danger", "Multiple file upload is not allowed. Please select a single file.");
     }
 
@@ -122,14 +122,14 @@ function handleFiles(files) {
         // check the file validation
         const checkFileValidation = validateFile(file);
 
-        if (FileUploadConfig.Check_File_Validation && checkFileValidation) {
+        if (fileUploadConfig.Check_File_Validation && checkFileValidation) {
             isValidFile = false;
             sendAlert("danger", `The selected file '${fileName}' does not meet the upload requirements: ${checkFileValidation}`);
         }
         else {
 
             // Check for duplicate files if duplicate file is not allowed
-            if (!FileUploadConfig.Allow_Duplicate_Files && Object.keys(selectedFiles).length > 0) {
+            if (!fileUploadConfig.Allow_Duplicate_Files && Object.keys(selectedFiles).length > 0) {
                 // Call the function to check for duplicates
                 var isDuplicate = isDuplicateFile(file, selectedFiles);
                 if (isDuplicate) {
@@ -187,28 +187,37 @@ function prepareUplodFiles() {
     else {
         console.log("cropped is null.");
 
-        // Total progress tracking
+        // Variables to track total progress
         let totalProgress = 0;
         let completedUploads = 0;
+        let percentCompleteFraction = 0;
 
         // Loop through the selectedFiles object and get the individual files
         for (const key in selectedFiles) {
             const file = selectedFiles[key];
-           // console.log(`File name: ${file.name}, File type: ${file.type}, File size: ${file.size}`);
+            // console.log(`File name: ${file.name}, File type: ${file.type}, File size: ${file.size}`);
 
             var formData = new FormData();
             formData.append("file", file);
 
-            uploadData(formData, key, file.name, (uploadPercentage) => {
-                // Update total progress when each upload is completed
-                completedUploads++;
-                totalProgress += uploadPercentage;
+            uploadData(formData, key, file.name, function (uniqueKey, percentComplete) {
+                if (percentComplete === 100) {
+                    completedUploads = parseInt(completedUploads, 10);
+                    completedUploads++;
+                }
+                else {
+                    percentCompleteFraction = percentComplete / 100;
+                    completedUploads = parseInt(completedUploads, 10);
+                    completedUploads += percentCompleteFraction;
+                }
+                // Update progress for individual file
+                updateIndividualFileProgress(uniqueKey, percentComplete);
 
                 // Calculate the average progress
-                const averageProgress = totalProgress / completedUploads;
-                console.log('averageProgress: ', averageProgress);
+                totalProgress = (completedUploads / Object.keys(selectedFiles).length) * 100;
+
                 // Update the total progress bar
-                updateTotalProgress(averageProgress);
+                updateTotalProgress(totalProgress);
 
                 // Check if all uploads are completed
                 if (completedUploads === Object.keys(selectedFiles).length) {
@@ -217,6 +226,7 @@ function prepareUplodFiles() {
                 }
             });
         }
+
 
 
 
@@ -240,18 +250,66 @@ function prepareUplodFiles() {
     }
 }
 
+///**
+// * this funciton for post data to server.
+// * @param {any} formData
+// * @param {any} uniqueKey
+// * @param {any} fileName
+// */
+//function uploadData(formData, uniqueKey, fileName) {
+//    console.log('uploadData Called.', formData);
+//    // Get the progress bar and progress text from the table row to show the progress status.
+//    var progressText = document.getElementById("progressText_" + uniqueKey);
+//    var progressBar = document.getElementById("progressBar_" + uniqueKey);
+//    // Send the file to the server using AJAX
+//    $.ajax({
+//        url: '/api/File/Upload',
+//        type: 'POST',
+//        data: formData,
+//        headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() },
+//        cache: false,
+//        contentType: false,
+//        processData: false,
+//        xhr: function () {
+//            var xhr = new window.XMLHttpRequest();
+//            xhr.upload.addEventListener('progress', function (evt) {
+//                if (evt.lengthComputable) {
+
+//                    var percentComplete = evt.loaded / evt.total;
+//                    var progressStatus = Math.floor(percentComplete * 100).toString() + '%';
+
+//                    // Update the innerHTML property to insert the desired text
+//                    progressText.innerHTML = progressStatus;
+//                    progressBar.style.width = progressStatus;
+//                }
+//            }, false);
+//            return xhr;
+//        },
+//        success: function (data, textStatus, jqXHR) {
+//            //alert('File uploaded successfully. URL: ' + response.url)
+//            if (textStatus == 'success') {
+//                var errorTitle = 'File uploaded successfully. <br/> File: ' + fileName;
+//                sendAlert('success', errorTitle);
+//            }
+//        },
+//        error: function (jqXHR, textStatus, errorThrown) {
+
+//            progressText.innerHTML = '0%';
+//            progressBar.style.width = '0%';
+//            var errorTitle = jqXHR.responseText + ' <br/> File: ' + fileName;
+//            sendAlert('danger', errorTitle);
+//        }
+//    });
+//}
+
 /**
  * this funciton for post data to server.
  * @param {any} formData
  * @param {any} uniqueKey
  * @param {any} fileName
+ * @param {any} progressCallback
  */
-function uploadData(formData, uniqueKey, fileName) {
-    console.log('uploadData Called.', formData);
-    // Get the progress bar and progress text from the table row to show the progress status.
-    var progressText = document.getElementById("progressText_" + uniqueKey);
-    var progressBar = document.getElementById("progressBar_" + uniqueKey);
-    // Send the file to the server using AJAX
+function uploadData(formData, uniqueKey, fileName, progressCallback) {
     $.ajax({
         url: '/api/File/Upload',
         type: 'POST',
@@ -264,32 +322,40 @@ function uploadData(formData, uniqueKey, fileName) {
             var xhr = new window.XMLHttpRequest();
             xhr.upload.addEventListener('progress', function (evt) {
                 if (evt.lengthComputable) {
-
-                    var percentComplete = evt.loaded / evt.total;
-                    var progressStatus = Math.floor(percentComplete * 100).toString() + '%';
-
-                    // Update the innerHTML property to insert the desired text
-                    progressText.innerHTML = progressStatus;
-                    progressBar.style.width = progressStatus;
+                    var percentComplete = (evt.loaded / evt.total) * 100;
+                    console.log('percentComplete: ', percentComplete);
+                    progressCallback(uniqueKey, percentComplete); // Individual file progress
                 }
             }, false);
             return xhr;
         },
         success: function (data, textStatus, jqXHR) {
-            //alert('File uploaded successfully. URL: ' + response.url)
             if (textStatus == 'success') {
                 var errorTitle = 'File uploaded successfully. <br/> File: ' + fileName;
                 sendAlert('success', errorTitle);
             }
         },
         error: function (jqXHR, textStatus, errorThrown) {
-
-            progressText.innerHTML = '0%';
-            progressBar.style.width = '0%';
             var errorTitle = jqXHR.responseText + ' <br/> File: ' + fileName;
             sendAlert('danger', errorTitle);
         }
     });
+}
+
+/**
+ * updateIndividualFileProgress
+ * @param {any} uniqueKey
+ * @param {any} percentComplete
+ */
+function updateIndividualFileProgress(uniqueKey, percentComplete) {
+    var progressText = document.getElementById("progressText_" + uniqueKey);
+    var progressBar = document.getElementById("progressBar_" + uniqueKey);
+
+    var progressStatus = Math.floor(percentComplete).toString() + '%';
+
+    // Update the innerHTML property to insert the desired text
+    progressText.innerHTML = progressStatus;
+    progressBar.style.width = progressStatus;
 }
 
 /**
